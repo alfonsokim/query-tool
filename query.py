@@ -21,12 +21,29 @@ def build_plan(options):
     _debug('creating plan for %s' % options.select, options)
     columns = []
     for column_name in options.select.split(','):
-        column = column_by_name(column_name)
-        if not column:
-            _error('Unknown column [%s]' % column_name, options)
-        columns.append(column)
+        if '*' == column_name:
+            columns.extend(COLUMNS)
+        else:
+            column = column_by_name(column_name)
+            if not column:
+                _error('Unknown column [%s]' % column_name, options)
+            columns.append(column)
     _debug('columns to select: %s' % str(columns), options)
-    
+    return {'columns': columns}
+
+## ============================================================================
+def execute(plan, datastore, options):
+    """
+    """
+    datafile = open(datastore['datafile'], 'r')
+    for row in range(datastore['num_rows']):
+        _debug('parsing row %i' % row, options)
+        line_begin = row * ROW_SIZE
+        for column in plan['columns']:
+            datafile.seek(line_begin + column.offset)
+            data = datafile.read(column.size).strip()
+            _debug('read [%s] for column %s' % (data, column.name), options)
+    datafile.close()
 
 ## ============================================================================
 if __name__ == '__main__':
@@ -42,3 +59,4 @@ if __name__ == '__main__':
     args = parser.parse_args()
     datastore = read_datastore(args)
     plan = build_plan(args)
+    execute(plan, datastore, args)

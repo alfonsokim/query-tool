@@ -4,7 +4,6 @@ import pickle
 from common import *
 
 ## ============================================================================
-
 def _parse_line(c, line, datastore, options):
     """
     """
@@ -13,13 +12,16 @@ def _parse_line(c, line, datastore, options):
         raise ValueError('%s' % line)
     _debug(fields, options)
     indexes = datastore['indexes']
+    out_fields = []
     for f, field in enumerate(fields):
-        if f in INDEX_COLUMNS:
-            column = COLUMNS[f]
-            _debug('indexando %s: %s' % (column.name, field), options)
+        column = column_by_position(f)
+        out_fields.append((field, column))
+        if column.is_index:
+            _debug('indexing %s: %s' % (column.name, field), options)
             key_index = indexes[column.name].get(field, [])
             key_index.append(c)
             indexes[column.name][field] = key_index
+    return out_fields
 
 ## ============================================================================
 def _save(datastore, options):
@@ -31,10 +33,16 @@ def _save(datastore, options):
     ds_file.close()
 
 ## ============================================================================
-def format_output_line(line, options):
+def format_output_field(field, options):
     """
     """
-    return line.strip()
+    return ('{:<%i}' % field[1].size).format(field[0])
+
+## ============================================================================
+def format_output_fields(fields, options):
+    """
+    """
+    return ''.join([format_output_field(f, options) for f in fields])
 
 ## ============================================================================
 def import_stream(stream, options):
@@ -43,12 +51,13 @@ def import_stream(stream, options):
     data_file = open('data', 'w')
     index_file = open('index', 'w')
     datastore = {'datafile': 'data', 
-                 'indexes': {COLUMNS[f].name: {} for f in INDEX_COLUMNS}}
+                 'indexes': {c.name: {} for c in COLUMNS if c.is_index}}
     for c, line in enumerate(stream):
         _debug('%i: %s' % (c, line.strip()), options)
-        _parse_line(c, line, datastore, options)
-        print >> data_file, format_output_line(line, options)
+        fields = _parse_line(c, line, datastore, options)
+        data_file.write(format_output_fields(fields, options))
     # -------------------------------------------------------------------------  
+    datastore['num_rows'] = c+1
     _save(datastore, options)
     data_file.close()
     index_file.close()
@@ -58,7 +67,6 @@ if __name__ == '__main__':
     """ Main entry point
     """
     import argparse
-    import sys
     parser = argparse.ArgumentParser(description='Import file or stream to local datastore')
     parser.add_argument('file', type=str, default='-', help='File to import')
     #parser.add_argument('separator', type=str, default='|', help='Field separator')
