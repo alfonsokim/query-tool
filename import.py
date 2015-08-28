@@ -1,25 +1,7 @@
 #!/usr/bin/env python
 
 import pickle
-from collections import namedtuple
-
-## ============================================================================
-Column = namedtuple('Column', 'name index size')
-STB = Column('STB', 0, 64)
-TITLE = Column('TITLE', 1, 64)
-PROVIDER = Column('PROVIDER', 2, 64)
-DATE = Column('DATE', 3, 10)
-REV = Column('REV', 4, 10)
-VIEW_TIME = Column('VIEW_TIME', 5, 10)
-COLUMNS = [STB, TITLE, PROVIDER, DATE, REV, VIEW_TIME]
-INDEX_COLUMNS = [STB.index, TITLE.index]
-
-## ============================================================================
-def _debug(line, options):
-    """
-    """
-    if options.verbose:
-        print >> sys.stderr, line
+from common import *
 
 ## ============================================================================
 
@@ -49,15 +31,23 @@ def _save(datastore, options):
     ds_file.close()
 
 ## ============================================================================
+def format_output_line(line, options):
+    """
+    """
+    return line.strip()
+
+## ============================================================================
 def import_stream(stream, options):
     """
     """
-    data_file = open('data', 'wb')
+    data_file = open('data', 'w')
     index_file = open('index', 'w')
-    datastore = {'indexes': {COLUMNS[f].name: {} for f in INDEX_COLUMNS}}
+    datastore = {'datafile': 'data', 
+                 'indexes': {COLUMNS[f].name: {} for f in INDEX_COLUMNS}}
     for c, line in enumerate(stream):
         _debug('%i: %s' % (c, line.strip()), options)
         _parse_line(c, line, datastore, options)
+        print >> data_file, format_output_line(line, options)
     # -------------------------------------------------------------------------  
     _save(datastore, options)
     data_file.close()
