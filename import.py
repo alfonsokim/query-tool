@@ -69,7 +69,6 @@ if __name__ == '__main__':
     import argparse
     parser = argparse.ArgumentParser(description='Import file or stream to local datastore')
     parser.add_argument('file', type=str, default='-', help='File to import')
-    #parser.add_argument('separator', type=str, default='|', help='Field separator')
     parser.add_argument('--verbose', action='store_true', help='increase output verbosity')
     parser.add_argument('--no_header', action='store_true', default=False, help='process from line 1')
     args = parser.parse_args()

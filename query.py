@@ -15,11 +15,13 @@ def read_datastore(options):
     return datastore
 
 ## ============================================================================
-def build_plan(options):
+def build_plan(datastore, options):
     """
     """
     _debug('creating plan for %s' % options.select, options)
     columns = []
+    indexes = []
+    filters = []
     for column_name in options.select.split(','):
         if '*' == column_name:
             columns.extend(COLUMNS)
@@ -28,26 +30,41 @@ def build_plan(options):
             if not column:
                 _error('Unknown column [%s]' % column_name, options)
             columns.append(column)
-    _debug('columns to select: %s' % str(columns), options)
-    return {'columns': columns}
+            if column.is_index:
+                indexes.append(column)
+    rows = range(datastore['num_rows']) ## TODO: Si hay condicionales filtrar las columnas
+    return {'columns': columns, 'indexes': indexes, 'rows': rows}
 
 ## ============================================================================
 def execute(plan, datastore, options):
     """
     """
+    if options.show_plan:
+        _debug('Executing plan %s' % str(plan), options)
     datafile = open(datastore['datafile'], 'r')
-    for row in range(datastore['num_rows']):
+    resultset = []
+    for row in plan['rows']:
         _debug('parsing row %i' % row, options)
+        result_row = []
         line_begin = row * ROW_SIZE
         for column in plan['columns']:
             datafile.seek(line_begin + column.offset)
             data = datafile.read(column.size).strip()
+            result_row.append(data)
             _debug('read [%s] for column %s' % (data, column.name), options)
+        resultset.append(result_row)
     datafile.close()
+    return resultset
+
+## ============================================================================
+def output_resultset(resultset, options):
+    """
+    """
+    _debug('Printing resultset: %s' % str(resultset), options)
 
 ## ============================================================================
 if __name__ == '__main__':
-    """
+    """ Main entry point
     """
     import argparse
     parser = argparse.ArgumentParser(description='Query tool')
@@ -56,7 +73,9 @@ if __name__ == '__main__':
     parser.add_argument('-s', '--select', type=str, required=True,
         metavar='COLUMNS', help='columns to select')
     parser.add_argument('--verbose', action='store_true', help='increase output verbosity')
+    parser.add_argument('--show_plan', action='store_true', help='show query plan')
     args = parser.parse_args()
     datastore = read_datastore(args)
-    plan = build_plan(args)
-    execute(plan, datastore, args)
+    plan = build_plan(datastore, args)
+    resultset = execute(plan, datastore, args)
+    output_resultset(resultset, args)
