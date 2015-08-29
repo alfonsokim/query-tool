@@ -20,10 +20,12 @@ COLUMNS = [STB, TITLE, PROVIDER, DATE, REV, VIEW_TIME]
 ROW_SIZE = sum([c.size for c in COLUMNS])
 
 ## ============================================================================
-def _debug(message, options):
+def _debug(message, options, check_verbose=True):
     """
     """
-    if options.verbose:
+    if not check_verbose:
+        print >> sys.stderr, message
+    elif check_verbose and options.verbose:
         print >> sys.stderr, message
 
 ## ============================================================================

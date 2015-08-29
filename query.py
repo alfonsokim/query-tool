@@ -22,6 +22,7 @@ def build_plan(datastore, options):
     columns = []
     indexes = []
     filters = []
+    rows = []
     for column_name in options.select.split(','):
         if '*' == column_name:
             columns.extend(COLUMNS)
@@ -32,6 +33,15 @@ def build_plan(datastore, options):
             columns.append(column)
             if column.is_index:
                 indexes.append(column)
+    for column_name in options.order.split(',') if options.order != '' else []:
+        _debug('ordering by column %s' % column_name, options)
+        column = column_by_name(column_name)
+        if not column:
+                _error('Unknown column [%s]' % column_name, options)
+        if column.is_index:
+            column_order = datastore['indexes'][column.name]
+        else:
+            pass ## TODO: What to do if a column is not index
     rows = range(datastore['num_rows']) ## TODO: Si hay condicionales filtrar las columnas
     return {'columns': columns, 'indexes': indexes, 'rows': rows}
 
@@ -40,7 +50,7 @@ def execute(plan, datastore, options):
     """
     """
     if options.show_plan:
-        _debug('Executing plan %s' % str(plan), options)
+        _debug('Executing plan %s' % str(plan), options, False)
     datafile = open(datastore['datafile'], 'r')
     resultset = []
     for row in plan['rows']:
@@ -61,6 +71,8 @@ def output_resultset(resultset, options):
     """
     """
     _debug('Printing resultset: %s' % str(resultset), options)
+    output = '\n'.join([','.join([value for value in row]) for row in resultset])
+    print >> sys.stdout, output
 
 ## ============================================================================
 if __name__ == '__main__':
@@ -72,6 +84,8 @@ if __name__ == '__main__':
         metavar='DATASTORE', help='Datastore to use')
     parser.add_argument('-s', '--select', type=str, required=True,
         metavar='COLUMNS', help='columns to select')
+    parser.add_argument('-o', '--order', type=str, default='',
+        metavar='COLUMNS', help='Order by columns')
     parser.add_argument('--verbose', action='store_true', help='increase output verbosity')
     parser.add_argument('--show_plan', action='store_true', help='show query plan')
     args = parser.parse_args()

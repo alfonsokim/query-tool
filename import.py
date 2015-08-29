@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 
+from collections import OrderedDict
 import pickle
 from common import *
 
@@ -33,6 +34,32 @@ def _save(datastore, options):
     ds_file.close()
 
 ## ============================================================================
+def sort_indexes(datastore, options):
+    """
+    """
+    indexes = datastore['indexes']
+    for column_name, index in indexes.iteritems():
+        _debug('sorting index %s: %s' % (column_name, str(index)), options)
+        indexes[column_name] = OrderedDict(sorted(index.items(), key=lambda v: v[0]))
+
+## ============================================================================
+def import_stream(stream, options):
+    """
+    """
+    data_file = open('data', 'w')
+    datastore = {'datafile': 'data', 
+                 'indexes': {c.name: {} for c in COLUMNS if c.is_index}}
+    for c, line in enumerate(stream):
+        _debug('%i: %s' % (c, line.strip()), options)
+        fields = _parse_line(c, line, datastore, options)
+        data_file.write(format_output_fields(fields, options))
+    # -------------------------------------------------------------------------  
+    datastore['num_rows'] = c+1
+    sort_indexes(datastore, options)
+    _save(datastore, options)
+    data_file.close()
+
+## ============================================================================
 def format_output_field(field, options):
     """
     """
@@ -43,24 +70,6 @@ def format_output_fields(fields, options):
     """
     """
     return ''.join([format_output_field(f, options) for f in fields])
-
-## ============================================================================
-def import_stream(stream, options):
-    """
-    """
-    data_file = open('data', 'w')
-    index_file = open('index', 'w')
-    datastore = {'datafile': 'data', 
-                 'indexes': {c.name: {} for c in COLUMNS if c.is_index}}
-    for c, line in enumerate(stream):
-        _debug('%i: %s' % (c, line.strip()), options)
-        fields = _parse_line(c, line, datastore, options)
-        data_file.write(format_output_fields(fields, options))
-    # -------------------------------------------------------------------------  
-    datastore['num_rows'] = c+1
-    _save(datastore, options)
-    data_file.close()
-    index_file.close()
 
 ## ============================================================================
 if __name__ == '__main__':
