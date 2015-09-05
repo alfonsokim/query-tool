@@ -15,35 +15,44 @@ def read_datastore(options):
     return datastore
 
 ## ============================================================================
+def build_order_by(order_by, datastore, options):
+    """
+    """
+    if len(order_by) == 0:
+        return range(datastore['num_rows']) 
+    _debug('Ordering by columns %s' % str(order_by), options)
+    rows = []
+    for column in order_by:
+        index = datastore['indexes'][column.name]
+        index_rows = []
+        for value, value_rows in index.iteritems():
+            index_rows.extend(value_rows)
+        _debug('rows for index %s: %s' % (column.name, str(index_rows)), options)
+        rows.extend(index_rows)
+    return rows
+
+## ============================================================================
 def build_plan(datastore, options):
     """
     """
     _debug('creating plan for %s' % options.select, options)
-    columns = []
-    indexes = []
-    filters = []
-    rows = []
+    columns, indexes, filters, order_by = [], [], [], []
     for column_name in options.select.split(','):
         if '*' == column_name:
             columns.extend(COLUMNS)
         else:
-            column = column_by_name(column_name)
-            if not column:
-                _error('Unknown column [%s]' % column_name, options)
+            column = column_by_name(column_name, fail=True)
             columns.append(column)
             if column.is_index:
                 indexes.append(column)
     for column_name in options.order.split(',') if options.order != '' else []:
-        _debug('ordering by column %s' % column_name, options)
-        column = column_by_name(column_name)
-        if not column:
-                _error('Unknown column [%s]' % column_name, options)
-        if column.is_index:
-            column_order = datastore['indexes'][column.name]
-        else:
-            pass ## TODO: What to do if a column is not index
-    rows = range(datastore['num_rows']) ## TODO: Si hay condicionales filtrar las columnas
-    return {'columns': columns, 'indexes': indexes, 'rows': rows}
+        column = column_by_name(column_name, fail=True)
+        if not column.is_index:
+            _error('Ordering by not index column (%s) is not supported' % column.name, options)
+        order_by.append(column)
+    rows = build_order_by(order_by, datastore, options)
+    return {'columns': columns, 'indexes': indexes, 
+            'rows': rows, 'order_by': order_by}
 
 ## ============================================================================
 def execute(plan, datastore, options):
@@ -67,7 +76,7 @@ def execute(plan, datastore, options):
     return resultset
 
 ## ============================================================================
-def output_resultset(resultset, options):
+def output_resultset(resultset, plan, options):
     """
     """
     _debug('Printing resultset: %s' % str(resultset), options)
@@ -92,4 +101,4 @@ if __name__ == '__main__':
     datastore = read_datastore(args)
     plan = build_plan(datastore, args)
     resultset = execute(plan, datastore, args)
-    output_resultset(resultset, args)
+    output_resultset(resultset, plan, args)

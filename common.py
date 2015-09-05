@@ -36,15 +36,17 @@ def _error(message, options):
     sys.exit(1)
 
 ## ============================================================================
-def column_by_name(column_name):
+def column_by_name(column_name, fail=False):
     for column in COLUMNS:
         if column_name.upper() == column.name:
             return column
+    if fail: _error('Unknown column [%s]' % column_name, None)
     return False
 
 ## ============================================================================
-def column_by_position(index):
+def column_by_position(index, fail=False):
     for column in COLUMNS:
         if index == column.index:
             return column
+    if fail: _error('Unknown column [%s]' % column_name, None)
     return False
