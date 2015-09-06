@@ -13,7 +13,7 @@ Column = namedtuple('Column', 'name index is_index size offset')
 STB = Column(name='STB', index=0, is_index=True, size=64, offset=0)
 TITLE = Column(name='TITLE', index=1, is_index=True, size=64, offset=64)
 PROVIDER = Column(name='PROVIDER', index=2, is_index=False, size=64, offset=128)
-DATE = Column(name='DATE', index=3, is_index=False, size=10, offset=192)
+DATE = Column(name='DATE', index=3, is_index=True, size=10, offset=192)
 REV = Column(name='REV', index=4, is_index=False, size=10, offset=202)
 VIEW_TIME = Column(name='VIEW_TIME', index=5, is_index=False, size=10, offset=212)
 COLUMNS = [STB, TITLE, PROVIDER, DATE, REV, VIEW_TIME]
