@@ -4,6 +4,7 @@ import sys
 import pickle
 import itertools
 from common import *
+# used to flatten the rows array from each index
 chain = itertools.chain.from_iterable
 
 ## ============================================================================
@@ -14,10 +15,42 @@ def read_datastore(options):
     ds_file = open(options.datastore, 'rb') 
     datastore = pickle.load(ds_file)
     _debug('Loaded datastore %s' % str(datastore), options)
+    ds_file.close()
     return datastore
 
 ## ============================================================================
 def build_order_by(order_by, datastore, options):
+    """
+    """
+    if len(order_by) == 0:
+        return range(datastore['num_rows']) 
+    _debug('Ordering by columns %s' % str(order_by), options)
+    num_rows = 0
+    flat_rows = []
+    for column in order_by: # Reshape the index rows list to sort by column
+        index = datastore['indexes'][column.name]
+        # index_rows is a list of tuples in the form (num_row, row)  
+        # further sorting must be based on the num_row value,
+        # preserving the row value for the actual result
+        index_rows = [(i, v) for i, v in enumerate(list(chain(index.itervalues())))]
+        flat_rows.extend(index_rows)
+        num_rows = len(index_rows)
+    # Actual reshape is done over the flat rows, in a slice-n-dice operation
+    # to rearange rows in a matrix in the same shape of the resultset
+    columns = [flat_rows[row::num_rows] for row in range(num_rows)]
+    _debug('columns: %s' % str(columns), options)
+    # Finally, the sorting. From leat-significant column to the most
+    # In each row there is a tuple in the form (num_row, row), so the
+    # second (1) value of the tuple is used to do the sort.
+    for idx in reversed(range(len(order_by))):
+        columns.sort(key=lambda c: c[idx][0])
+    _debug('columns (sorted): %s' % str(columns), options)
+    # Once the columns are sorted, the most-signinficant row is in index 0
+    # and the actual column to fetch is in position 1 of the tuple.
+    return [column[0][1] for column in columns]
+
+## ============================================================================
+def build_order_by_bad(order_by, datastore, options):
     """
     """
     if len(order_by) == 0:
