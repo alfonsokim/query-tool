@@ -50,29 +50,6 @@ def build_order_by(order_by, datastore, options):
     return [column[0][1] for column in columns]
 
 ## ============================================================================
-def build_order_by_bad(order_by, datastore, options):
-    """
-    """
-    if len(order_by) == 0:
-        return range(datastore['num_rows']) 
-    _debug('Ordering by columns %s' % str(order_by), options)
-    num_rows = 0
-    flat_rows = []
-    for column in order_by:
-        index = datastore['indexes'][column.name]
-        index_rows = list(chain([v for v in index.itervalues()]))
-        num_rows = len(index_rows)
-        flat_rows.extend(index_rows)
-    _debug('flat_rows (antes): %s' % str(flat_rows), options)
-    columns = [flat_rows[row::num_rows] for row in range(num_rows)]
-    _debug('cols (despues): %s' % str(columns), options)
-    for idx in reversed(range(len(order_by))):
-        columns = sorted(columns, key=lambda c: c[idx])
-    _debug('cols (sorted): %s' % str(columns), options)
-    #return [column[0] for column in columns]
-    return range(datastore['num_rows']) 
-
-## ============================================================================
 def build_plan(datastore, options):
     """
     """
@@ -121,7 +98,7 @@ def output_resultset(resultset, plan, options):
     """
     """
     _debug('Printing resultset: %s' % str(resultset), options)
-    output = '\n'.join([','.join([value for value in row]) for row in resultset])
+    output = '\n'.join([','.join(row) for row in resultset])
     print >> sys.stdout, output
 
 ## ============================================================================
