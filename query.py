@@ -50,6 +50,24 @@ def build_order_by(order_by, datastore, options):
     return [column[0][1] for column in columns]
 
 ## ============================================================================
+def build_filter(filters, datastore, options):
+    """
+    """
+    if len(filters) == 0:
+        return range(datastore['num_rows']) 
+    _debug('Filtering by %s' % str(filters), options)
+
+## ============================================================================
+def parse_filter(condition, options):
+    """
+    """
+    items = condition.split('=')
+    if len(items) != 2:
+        _error('Invalid filter sintax: %s' % condition, options)
+    column = column_by_name(items[0], fail=True)
+    return column, items[1]
+
+## ============================================================================
 def build_plan(datastore, options):
     """
     """
@@ -68,6 +86,9 @@ def build_plan(datastore, options):
         if not column.is_index:
             _error('Ordering by not index column (%s) is not supported' % column.name, options)
         order_by.append(column)
+    for condition in options.filter.split(',') if options.filter != '' else []:
+        filters.append(parse_filter(condition, options))
+    filtered_rows = build_filter(filters, datastore, options)
     rows = build_order_by(order_by, datastore, options)
     return {'columns': columns, 'indexes': indexes, 
             'rows': rows, 'order_by': order_by}
@@ -113,6 +134,8 @@ if __name__ == '__main__':
         metavar='COLUMNS', help='columns to select')
     parser.add_argument('-o', '--order', type=str, default='',
         metavar='COLUMNS', help='Order by columns')
+    parser.add_argument('-f', '--filter', type=str, default='',
+        metavar='CONDITIONS', help='Filter conditions')
     parser.add_argument('--verbose', action='store_true', help='increase output verbosity')
     parser.add_argument('--show_plan', action='store_true', help='show query plan')
     args = parser.parse_args()
