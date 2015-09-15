@@ -23,9 +23,7 @@ def build_order_by(order_by, filtered_rows, datastore, options):
     """
     """
     if len(order_by) == 0:
-        return range(datastore['num_rows']) 
-    if len(filtered_rows) == 0:
-        return []
+        return filtered_rows
     _debug('Ordering by columns %s' % str(order_by), options)
     num_rows = 0
     flat_rows = []
@@ -134,6 +132,7 @@ def output_resultset(resultset, plan, options):
     _debug('Printing resultset: %s' % str(resultset), options)
     output = '\n'.join([','.join(row) for row in resultset])
     print >> sys.stdout, output
+    print >> sys.stdout, '(%i records found)' % len(resultset)
 
 ## ============================================================================
 if __name__ == '__main__':
