@@ -19,11 +19,13 @@ def read_datastore(options):
     return datastore
 
 ## ============================================================================
-def build_order_by(order_by, datastore, options):
+def build_order_by(order_by, filtered_rows, datastore, options):
     """
     """
     if len(order_by) == 0:
         return range(datastore['num_rows']) 
+    if len(filtered_rows) == 0:
+        return []
     _debug('Ordering by columns %s' % str(order_by), options)
     num_rows = 0
     flat_rows = []
@@ -32,7 +34,8 @@ def build_order_by(order_by, datastore, options):
         # index_rows is a list of tuples in the form (num_row, row)  
         # further sorting must be based on the num_row value,
         # preserving the row value for the actual result
-        index_rows = [(i, v) for i, v in enumerate(list(chain(index.itervalues())))]
+        index_rows = [(i, v) for i, v in enumerate(list(chain(index.itervalues())))
+                      if v in filtered_rows]
         flat_rows.extend(index_rows)
         num_rows = len(index_rows)
     # Actual reshape is done over the flat rows, in a slice-n-dice operation
@@ -56,6 +59,16 @@ def build_filter(filters, datastore, options):
     if len(filters) == 0:
         return range(datastore['num_rows']) 
     _debug('Filtering by %s' % str(filters), options)
+    filtered_columns = []
+    for column, value in filters:
+        if column.name not in datastore['indexes']:
+            _error('Filtering is only supported on indexed columns (%s)' % column.name, options)
+        index = datastore['indexes'][column.name]
+        col_values = index.get(value, []) ## Extender la lista actual
+        _debug('Selected columns for value %s: %s' % (value, col_values), options)
+        filtered_columns.extend(col_values)
+    return filtered_columns
+
 
 ## ============================================================================
 def parse_filter(condition, options):
@@ -89,9 +102,9 @@ def build_plan(datastore, options):
     for condition in options.filter.split(',') if options.filter != '' else []:
         filters.append(parse_filter(condition, options))
     filtered_rows = build_filter(filters, datastore, options)
-    rows = build_order_by(order_by, datastore, options)
+    ordered_rows = build_order_by(order_by, filtered_rows, datastore, options)
     return {'columns': columns, 'indexes': indexes, 
-            'rows': rows, 'order_by': order_by}
+            'rows': ordered_rows, 'order_by': order_by}
 
 ## ============================================================================
 def execute(plan, datastore, options):
@@ -136,7 +149,7 @@ if __name__ == '__main__':
         metavar='COLUMNS', help='Order by columns')
     parser.add_argument('-f', '--filter', type=str, default='',
         metavar='CONDITIONS', help='Filter conditions')
-    parser.add_argument('--verbose', action='store_true', help='increase output verbosity')
+    parser.add_argument('--verbose', action='store_true', help='increase verbosity')
     parser.add_argument('--show_plan', action='store_true', help='show query plan')
     args = parser.parse_args()
     datastore = read_datastore(args)
