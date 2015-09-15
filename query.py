@@ -132,7 +132,8 @@ def output_resultset(resultset, plan, options):
     _debug('Printing resultset: %s' % str(resultset), options)
     output = '\n'.join([','.join(row) for row in resultset])
     print >> sys.stdout, output
-    print >> sys.stdout, '(%i records found)' % len(resultset)
+    lr = len(resultset) # for pretty printing
+    print >> sys.stdout, '(%i record%s found)' % (lr, 's' if lr > 1 else '')
 
 ## ============================================================================
 if __name__ == '__main__':

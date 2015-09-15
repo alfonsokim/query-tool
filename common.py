@@ -19,6 +19,8 @@ VIEW_TIME = Column(name='VIEW_TIME', index=5, is_index=False, size=10, offset=21
 COLUMNS = [STB, TITLE, PROVIDER, DATE, REV, VIEW_TIME]
 ROW_SIZE = sum([c.size for c in COLUMNS])
 
+AGGREGATES = 'min,max,sum,count,collect,'.split(',')
+
 ## ============================================================================
 def _debug(message, options, check_verbose=True):
     """
@@ -37,8 +39,14 @@ def _error(message, options):
 
 ## ============================================================================
 def column_by_name(column_name, fail=False):
+    aggregate = ''
+    if ':' in column_name:
+        column_name, aggregate = tuple(column_name.split(':'))
+        if aggregate.lower() not in AGGREGATES:
+            _error('Unknown aggregate operation: %s' % aggregate, {})
     for column in COLUMNS:
         if column_name.upper() == column.name:
+            #column.aggregate = aggregate
             return column
     if fail: _error('Unknown column [%s]' % column_name, None)
     return False
