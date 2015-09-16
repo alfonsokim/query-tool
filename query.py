@@ -130,6 +130,7 @@ def execute(plan, datastore, options):
         for column in plan['columns']:
             datafile.seek(line_begin + column.offset)
             data = datafile.read(column.size).strip()
+            column.add_value(data)
             result_row.append(data)
             _debug('read [%s] for column %s' % (data, column.name), options)
         resultset.append(result_row)
@@ -137,13 +138,15 @@ def execute(plan, datastore, options):
     return resultset
 
 ## ============================================================================
-def output_resultset(resultset, plan, options):
+def output_resultset(datastore, plan, options):
     """
     """
-    _debug('Printing resultset: %s' % str(resultset), options)
-    output = '\n'.join([','.join(row) for row in resultset])
+    names = [column.format_name() for column in plan['columns']]
+    values = zip(*[column.values for column in plan['columns']])
+    output = '\n'.join([','.join(row) for row in values])
+    print >> sys.stdout, ','.join(names)
     print >> sys.stdout, output
-    lr = len(resultset) # for pretty printing
+    lr = len(values) # for pretty printing
     print >> sys.stdout, '(%i record%s found)' % (lr, 's' if lr > 1 else '')
 
 ## ============================================================================
@@ -160,10 +163,12 @@ if __name__ == '__main__':
         metavar='COLUMNS', help='Order by columns')
     parser.add_argument('-f', '--filter', type=str, default='',
         metavar='CONDITIONS', help='Filter conditions')
+    parser.add_argument('-g', '--group', type=str, default='',
+        metavar='COLUMNS', help='group columns')
     parser.add_argument('--verbose', action='store_true', help='increase verbosity')
     parser.add_argument('--show_plan', action='store_true', help='show query plan')
     args = parser.parse_args()
     datastore = read_datastore(args)
     plan = build_plan(datastore, args)
-    resultset = execute(plan, datastore, args)
-    output_resultset(resultset, plan, args)
+    execute(plan, datastore, args)
+    output_resultset(datastore, plan, args)
