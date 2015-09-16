@@ -1,7 +1,7 @@
 
 __all__ = ['_debug', 'STB', 'TITLE', 'PROVIDER', 'DATE', 'REV', 'VIEW_TIME', 
            'COLUMNS', 'column_by_name', '_error', 'ROW_SIZE',
-           'column_by_position']
+           'column_by_position', 'SelectColumn']
 
 from collections import namedtuple
 import sys
@@ -22,6 +22,25 @@ ROW_SIZE = sum([c.size for c in COLUMNS])
 AGGREGATES = 'min,max,sum,count,collect,'.split(',')
 
 ## ============================================================================
+class SelectColumn():
+    """
+    """
+
+    def __init__(self, column, aggregate=''):
+        """
+        """
+        self.column = column
+        self.aggregate = aggregate
+        if aggregate not in AGGREGATES:
+            _error('invalid aggregate: %s' % aggregate, {})
+        self.column_props = 'name index is_index size offset'.split()
+
+    def __getattr__(self, attr):
+        """ Proxy for the column properties
+        """
+        return self.column[self.column_props.index(attr)]
+
+## ============================================================================
 def _debug(message, options, check_verbose=True):
     """
     """
@@ -39,14 +58,8 @@ def _error(message, options):
 
 ## ============================================================================
 def column_by_name(column_name, fail=False):
-    aggregate = ''
-    if ':' in column_name:
-        column_name, aggregate = tuple(column_name.split(':'))
-        if aggregate.lower() not in AGGREGATES:
-            _error('Unknown aggregate operation: %s' % aggregate, {})
     for column in COLUMNS:
         if column_name.upper() == column.name:
-            #column.aggregate = aggregate
             return column
     if fail: _error('Unknown column [%s]' % column_name, None)
     return False

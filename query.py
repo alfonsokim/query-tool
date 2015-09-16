@@ -67,7 +67,6 @@ def build_filter(filters, datastore, options):
         filtered_columns.extend(col_values)
     return filtered_columns
 
-
 ## ============================================================================
 def parse_filter(condition, options):
     """
@@ -79,6 +78,18 @@ def parse_filter(condition, options):
     return column, items[1]
 
 ## ============================================================================
+def parse_select_term(term, options):
+    """
+    """
+    if ':' not in term:
+        column = column_by_name(term, fail=True)
+        return SelectColumn(column)
+    col_name, aggregate = tuple(term.split(':'))
+    column = column_by_name(col_name, fail=True)
+    _debug('using aggregate %s for column %s' % (aggregate, col_name), options)
+    return SelectColumn(column, aggregate)
+
+## ============================================================================
 def build_plan(datastore, options):
     """
     """
@@ -86,11 +97,11 @@ def build_plan(datastore, options):
     columns, indexes, filters, order_by = [], [], [], []
     for column_name in options.select.split(','):
         if '*' == column_name:
-            columns.extend(COLUMNS)
+            columns.extend([SelectColumn(c) for c in COLUMNS])
         else:
-            column = column_by_name(column_name, fail=True)
+            column = parse_select_term(column_name, options)
             columns.append(column)
-            if column.is_index:
+            if column.is_index: # TODO: Check if this if is needed
                 indexes.append(column)
     for column_name in options.order.split(',') if options.order != '' else []:
         column = column_by_name(column_name, fail=True)
