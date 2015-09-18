@@ -83,11 +83,11 @@ def parse_select_term(term, options):
     """
     if ':' not in term:
         column = column_by_name(term, fail=True)
-        return SelectColumn(column)
+        return column, ''
     col_name, aggregate = tuple(term.split(':'))
     column = column_by_name(col_name, fail=True)
     _debug('using aggregate %s for column %s' % (aggregate, col_name), options)
-    return SelectColumn(column, aggregate)
+    return column, aggregate
 
 ## ============================================================================
 def build_plan(datastore, options):
@@ -99,8 +99,8 @@ def build_plan(datastore, options):
         if '*' == column_name:
             columns.extend([SelectColumn(c) for c in COLUMNS])
         else:
-            column = parse_select_term(column_name, options)
-            columns.append(column)
+            column, aggregate = parse_select_term(column_name, options)
+            columns.append(SelectColumn(column, aggregate))
             if column.is_index: # TODO: Check if this if is needed
                 indexes.append(column)
     for column_name in options.order.split(',') if options.order != '' else []:
@@ -122,29 +122,23 @@ def execute(plan, datastore, options):
     if options.show_plan:
         _debug('Executing plan %s' % str(plan), options, False)
     datafile = open(datastore['datafile'], 'r')
-    resultset = []
     for row in plan['rows']:
         _debug('parsing row %i' % row, options)
-        result_row = []
         line_begin = row * ROW_SIZE
         for column in plan['columns']:
             datafile.seek(line_begin + column.offset)
             data = datafile.read(column.size).strip()
             column.add_value(data)
-            result_row.append(data)
             _debug('read [%s] for column %s' % (data, column.name), options)
-        resultset.append(result_row)
     datafile.close()
-    return resultset
 
 ## ============================================================================
 def output_resultset(datastore, plan, options):
     """
     """
-    names = [column.format_name() for column in plan['columns']]
-    values = zip(*[column.values for column in plan['columns']])
+    values = zip(*[column.values() for column in plan['columns']])
     output = '\n'.join([','.join(row) for row in values])
-    print >> sys.stdout, ','.join(names)
+    print >> sys.stdout, ','.join([column.format_name() for column in plan['columns']])
     print >> sys.stdout, output
     lr = len(values) # for pretty printing
     print >> sys.stdout, '(%i record%s found)' % (lr, 's' if lr > 1 else '')
@@ -163,8 +157,6 @@ if __name__ == '__main__':
         metavar='COLUMNS', help='Order by columns')
     parser.add_argument('-f', '--filter', type=str, default='',
         metavar='CONDITIONS', help='Filter conditions')
-    parser.add_argument('-g', '--group', type=str, default='',
-        metavar='COLUMNS', help='group columns')
     parser.add_argument('--verbose', action='store_true', help='increase verbosity')
     parser.add_argument('--show_plan', action='store_true', help='show query plan')
     args = parser.parse_args()
