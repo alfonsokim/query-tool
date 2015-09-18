@@ -88,6 +88,10 @@ class SelectColumn(): ## TODO: Cambiar de lugar esta clase
         return self.column[COLUMN_PROPERTIES.index(attr)]
 
     # -------------------------------------------------------------------------
+    def __repr__(self):
+        return 'Column: %s, aggregate: %s' % (self.column, self.aggregate)
+
+    # -------------------------------------------------------------------------
     def add_value(self, value):
         """
         """
@@ -139,13 +143,11 @@ class SelectColumn(): ## TODO: Cambiar de lugar esta clase
             return self.column.name
 
 ## ============================================================================
-def _debug(message, options, check_verbose=True):
+def _debug(message, is_verbose):
     """
     """
-    if not check_verbose:
-        print >> sys.stderr, message
-    elif check_verbose and options.verbose:
-        print >> sys.stderr, message
+    if is_verbose:
+        print >> sys.stderr, 'DEBUG: %s' % message
 
 ## ============================================================================
 def _error(message):

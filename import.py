@@ -11,14 +11,14 @@ def _parse_line(c, line, datastore, options):
     fields = line.strip().split('|')
     if len(fields) != len(COLUMNS):
         raise ValueError('%s' % line)
-    _debug(fields, options)
+    _debug(fields, options.verbose)
     indexes = datastore['indexes']
     out_fields = []
     for f, field in enumerate(fields):
         column = column_by_position(f)
         out_fields.append((field, column))
         if column.is_index:
-            _debug('indexing %s: %s' % (column.name, field), options)
+            _debug('indexing %s: %s' % (column.name, field), options.verbose)
             key_index = indexes[column.name].get(field, [])
             key_index.append(c)
             indexes[column.name][field] = key_index
@@ -28,7 +28,7 @@ def _parse_line(c, line, datastore, options):
 def _save(datastore, options):
     """
     """
-    _debug('saving datastore %s' % str(datastore), options)
+    _debug('saving datastore %s' % str(datastore), options.verbose)
     ds_file = open('datastore.ds', 'wb')
     pickle.dump(datastore, ds_file)
     ds_file.close()
@@ -39,7 +39,7 @@ def sort_indexes(datastore, options):
     """
     indexes = datastore['indexes']
     for column_name, index in indexes.iteritems():
-        _debug('sorting index %s: %s' % (column_name, str(index)), options)
+        _debug('sorting index %s: %s' % (column_name, str(index)), options.verbose)
         indexes[column_name] = OrderedDict(sorted(index.items(), key=lambda v: v[0]))
 
 ## ============================================================================
@@ -50,7 +50,7 @@ def import_stream(stream, options):
     datastore = {'datafile': 'data', 
                  'indexes': {c.name: {} for c in COLUMNS if c.is_index}}
     for c, line in enumerate(stream):
-        _debug('%i: %s' % (c, line.strip()), options)
+        _debug('%i: %s' % (c, line.strip()), options.verbose)
         fields = _parse_line(c, line, datastore, options)
         data_file.write(format_output_fields(fields, options))
     # -------------------------------------------------------------------------  
@@ -81,7 +81,7 @@ if __name__ == '__main__':
     parser.add_argument('--verbose', action='store_true', help='increase output verbosity')
     parser.add_argument('--no_header', action='store_true', default=False, help='process from line 1')
     args = parser.parse_args()
-    _debug('reading %s' % args.file, args)
+    _debug('reading %s' % args.file, args.verbose)
     stream = open(args.file, 'r') if args.file != '-' else sys.stdin
     if not args.no_header: stream.readline()
     import_stream(stream, args)
