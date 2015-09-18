@@ -1,5 +1,5 @@
 index
 data
-data.txt
+*.txt
 *.ds
 *.pyc
