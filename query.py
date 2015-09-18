@@ -60,7 +60,7 @@ def build_filter(filters, datastore, options):
     filtered_columns = []
     for column, value in filters:
         if column.name not in datastore['indexes']:
-            _error('Filtering is only supported on indexed columns (%s)' % column.name, options)
+            _error('Filtering is only supported on indexed columns (%s)' % column.name)
         index = datastore['indexes'][column.name]
         col_values = index.get(value, []) ## Extender la lista actual
         _debug('Selected columns for value %s: %s' % (value, col_values), options)
@@ -73,7 +73,7 @@ def parse_filter(condition, options):
     """
     items = condition.split('=')
     if len(items) != 2:
-        _error('Invalid filter sintax: %s' % condition, options)
+        _error('Invalid filter sintax: %s' % condition)
     column = column_by_name(items[0], fail=True)
     return column, items[1]
 
@@ -84,6 +84,8 @@ def parse_select_term(term, options):
     if ':' not in term:
         column = column_by_name(term, fail=True)
         return column, ''
+    if term.count(':') > 1:
+        _error('Invalid aggregate syntax: %s' % term)
     col_name, aggregate = tuple(term.split(':'))
     column = column_by_name(col_name, fail=True)
     _debug('using aggregate %s for column %s' % (aggregate, col_name), options)
@@ -106,7 +108,7 @@ def build_plan(datastore, options):
     for column_name in options.order.split(',') if options.order != '' else []:
         column = column_by_name(column_name, fail=True)
         if not column.is_index:
-            _error('Ordering by not index column (%s) is not supported' % column.name, options)
+            _error('Ordering by not index column (%s) is not supported' % column.name)
         order_by.append(column)
     for condition in options.filter.split(',') if options.filter != '' else []:
         filters.append(parse_filter(condition, options))

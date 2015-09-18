@@ -1,7 +1,7 @@
 
-__all__ = ['_debug', 'STB', 'TITLE', 'PROVIDER', 'DATE', 'REV', 'VIEW_TIME', 
+__all__ = ['STB', 'TITLE', 'PROVIDER', 'DATE', 'REV', 'VIEW_TIME', 
            'COLUMNS', 'column_by_name', '_error', 'ROW_SIZE',
-           'column_by_position', 'SelectColumn']
+           '_debug', 'column_by_position', 'SelectColumn']
 
 from datetime import datetime as dt
 from collections import namedtuple
@@ -75,9 +75,9 @@ class SelectColumn(): ## TODO: Cambiar de lugar esta clase
         self.raw_values = None
         self.current_value = None
         if aggregate not in AGGREGATES:
-            _error('invalid aggregate: %s' % aggregate, {})
+            _error('invalid aggregate: %s' % aggregate)
         if aggregate == 'sum' and column.type in [Date, Char]:
-            _error('Cannot add on column %s' % column.name, {})
+            _error('Cannot add on column %s' % column.name)
         if aggregate == '':
             self.current_value = []
 
@@ -89,6 +89,8 @@ class SelectColumn(): ## TODO: Cambiar de lugar esta clase
 
     # -------------------------------------------------------------------------
     def add_value(self, value):
+        """
+        """
         new_value = self.column.type(value)
         if self.aggregate == '':
             self.current_value.append(new_value)
@@ -106,16 +108,18 @@ class SelectColumn(): ## TODO: Cambiar de lugar esta clase
             else:
                 self.current_value += 1
         elif self.aggregate == 'collect':
-            if not self.current_value:
+            if not self.current_value: 
                 self.raw_values = set([new_value.value])
-                self.current_value = [new_value]
-            else:
+                self.current_value = [new_value] 
+            else: 
                 if new_value.value not in self.raw_values:
                     self.raw_values.add(new_value.value)
                     self.current_value.append(new_value)
 
     # -------------------------------------------------------------------------
     def values(self):
+        """
+        """
         if self.aggregate == '':
             return [v.format() for v in self.current_value]
         if self.aggregate in ['min', 'max', 'sum']:
@@ -125,45 +129,6 @@ class SelectColumn(): ## TODO: Cambiar de lugar esta clase
         if self.aggregate == 'collect':
             return ['[%s]' % ','.join([v.format() for v in self.current_value])]
 
-
-    # -------------------------------------------------------------------------
-    def add_value_bad(self, value):
-        """
-        """
-        values = self.values
-        if self.aggregate == '':
-            values.append(value)
-        if self.aggregate == 'collect':
-            if len(values) == 0:
-                values.append(set([value]))
-            else:
-                values[0].add(value)
-        if self.aggregate == 'count':
-            if len(values) == 0:
-                values.append(1)
-            else:
-                values[0] += 1
-        new_val = self.column.type(value)
-        last_val = self.column.type(values[0]) if len(values) > 0 else new_val
-        if self.aggregate == 'sum':
-            if len(values) == 0:
-                values.append(value)
-            else:
-                values[0] += new_val
-        if self.aggregate == 'min' and new_val < last_val:
-            if len(values) == 0:
-                values.append(value)
-            else:
-                values[0] = value
-        if self.aggregate == 'max' and new_val > last_val:
-            if len(values) == 0:
-                values.append(value)
-            else:
-                values[0] = value
-        if len(values) == 0:
-            values.append(value)
-        self.values = values
-
     # -------------------------------------------------------------------------
     def format_name(self):
         """
@@ -172,7 +137,6 @@ class SelectColumn(): ## TODO: Cambiar de lugar esta clase
             return ':'.join([self.column.name, self.aggregate])
         else:
             return self.column.name
-
 
 ## ============================================================================
 def _debug(message, options, check_verbose=True):
@@ -184,7 +148,7 @@ def _debug(message, options, check_verbose=True):
         print >> sys.stderr, message
 
 ## ============================================================================
-def _error(message, options):
+def _error(message):
     """
     """
     print >> sys.stderr, message
@@ -195,7 +159,7 @@ def column_by_name(column_name, fail=False):
     for column in COLUMNS:
         if column_name.upper() == column.name:
             return column
-    if fail: _error('Unknown column [%s]' % column_name, None)
+    if fail: _error('Unknown column [%s]' % column_name)
     return False
 
 ## ============================================================================
@@ -203,5 +167,5 @@ def column_by_position(index, fail=False):
     for column in COLUMNS:
         if index == column.index:
             return column
-    if fail: _error('Unknown column [%s]' % column_name, None)
+    if fail: _error('Unknown column [%s]' % column_name)
     return False
