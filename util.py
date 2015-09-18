@@ -84,9 +84,9 @@ class SelectColumn(): ## TODO: Cambiar de lugar esta clase
         self.raw_values = None
         self.current_value = None
         if aggregate not in AGGREGATES:
-            _error('invalid aggregate: %s' % aggregate)
+            error('invalid aggregate: %s' % aggregate)
         if aggregate == 'sum' and column.type in [Date, Char]:
-            _error('Cannot add on column %s' % column.name)
+            error('Cannot add on column %s' % column.name)
         if aggregate == '':
             self.current_value = []
 
@@ -177,7 +177,7 @@ def column_by_name(column_name, fail=False):
     for column in COLUMNS:
         if column_name.upper() == column.name:
             return column
-    if fail: _error('Unknown column [%s]' % column_name)
+    if fail: error('Unknown column [%s]' % column_name)
     return False
 
 ## ============================================================================
@@ -191,7 +191,7 @@ def column_by_position(index, fail=False):
     for column in COLUMNS:
         if index == column.index:
             return column
-    if fail: _error('Unknown column index [%i]' % index)
+    if fail: error('Unknown column index [%i]' % index)
     return False
 
 ## ============================================================================

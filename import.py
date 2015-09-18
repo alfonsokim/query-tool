@@ -2,7 +2,8 @@
 
 from collections import OrderedDict
 import pickle
-from common import *
+import sys
+from util import *
 
 ## ============================================================================
 def parse_line(c, line, datastore, options):

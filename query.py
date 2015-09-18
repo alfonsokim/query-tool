@@ -3,7 +3,7 @@
 import sys
 import pickle
 import itertools
-from common import *
+from util import *
 
 chain = itertools.chain.from_iterable # to flatten the rows array from each index
 
