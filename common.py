@@ -43,7 +43,7 @@ class Time():
         self.value = (int(hours) * 60) + int(minutes)
 
     def format(self):
-        return '%i:%i' % (self.value / 60, self.value % 60)
+        return '%i:%02i' % (self.value / 60, self.value % 60)
 
 ## ============================================================================
 Column = namedtuple('Column', 'name index is_index size offset type')
@@ -72,7 +72,7 @@ class SelectColumn(): ## TODO: Cambiar de lugar esta clase
         """
         self.column = column
         self.aggregate = aggregate
-        self.named_values = {}
+        self.raw_values = None
         self.current_value = None
         if aggregate not in AGGREGATES:
             _error('invalid aggregate: %s' % aggregate, {})
@@ -105,6 +105,14 @@ class SelectColumn(): ## TODO: Cambiar de lugar esta clase
                 self.current_value = 1
             else:
                 self.current_value += 1
+        elif self.aggregate == 'collect':
+            if not self.current_value:
+                self.raw_values = set([new_value.value])
+                self.current_value = [new_value]
+            else:
+                if new_value.value not in self.raw_values:
+                    self.raw_values.add(new_value.value)
+                    self.current_value.append(new_value)
 
     # -------------------------------------------------------------------------
     def values(self):
@@ -114,6 +122,8 @@ class SelectColumn(): ## TODO: Cambiar de lugar esta clase
             return [self.current_value.format()]
         if self.aggregate == 'count':
             return ['%i' % self.current_value]
+        if self.aggregate == 'collect':
+            return ['[%s]' % ','.join([v.format() for v in self.current_value])]
 
 
     # -------------------------------------------------------------------------
